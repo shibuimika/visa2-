@@ -3,27 +3,28 @@ import { StudentStatus, StatusConfig } from '@/types'
 export const statusConfig: Record<StudentStatus, StatusConfig> = {
   'Draft': {
     label: '下書き',
-    color: 'secondary'
+    icon: 'edit',
   },
   'Check': {
     label: '確認待ち',
-    color: 'warning'
+    icon: 'clock',
   },
   'Need Fix': {
-    label: '修正必要',
-    color: 'danger'
+    label: '要修正',
+    icon: 'alert',
+    isUrgent: true,
   },
   'Submitted': {
-    label: '承認済み',
-    color: 'success'
+    label: '承認完了',
+    icon: 'check',
   },
   'Unsubmitted': {
-    label: '未提出',
-    color: 'secondary'
+    label: '書類不足',
+    icon: 'file',
   },
   'Applying': {
     label: '申請中',
-    color: 'primary'
+    icon: 'send',
   }
 }
 
@@ -38,4 +39,3 @@ export function updateStudentStatus(students: any[], studentId: string, newStatu
       : student
   )
 }
-

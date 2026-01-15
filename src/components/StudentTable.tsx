@@ -1,131 +1,180 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Student } from '@/types'
-import { StatusBadge } from './StatusBadge'
-import { DeadlineRemainingDays } from './DeadlineRemainingDays'
-import { SubmissionCount } from './SubmissionCount'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { formatDate } from '@/lib/date'
-import { Search, Eye } from 'lucide-react'
+import { ExpandableRow } from './ExpandableRow'
+import { BulkActionBar } from './BulkActionBar'
+import { cn } from '@/lib/utils'
+import { Search, ChevronUp, ChevronDown, CheckSquare } from 'lucide-react'
+import { SortField, SortOrder } from './FilterTabs'
 
 interface StudentTableProps {
   students: Student[]
+  sortField: SortField
+  sortOrder: SortOrder
+  onSortChange: (field: SortField, order: SortOrder) => void
 }
 
-export function StudentTable({ students }: StudentTableProps) {
-  const [searchTerm, setSearchTerm] = useState('')
+export function StudentTable({ students, sortField, sortOrder, onSortChange }: StudentTableProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectionMode, setSelectionMode] = useState(false)
   
-  const filteredStudents = students.filter(student => {
-    if (!searchTerm) return true
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      student.familyName.toLowerCase().includes(searchLower) ||
-      student.givenName.toLowerCase().includes(searchLower) ||
-      student.passportNo.toLowerCase().includes(searchLower)
-    )
-  })
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(students.map(s => s.id)))
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
   
+  const handleSelectOne = (studentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds)
+    if (checked) {
+      newSelected.add(studentId)
+    } else {
+      newSelected.delete(studentId)
+    }
+    setSelectedIds(newSelected)
+  }
+  
+  const isAllSelected = students.length > 0 && students.every(s => selectedIds.has(s.id))
+  const isSomeSelected = selectedIds.size > 0
+  const selectedStudents = students.filter(s => selectedIds.has(s.id))
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      onSortChange(field, sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      onSortChange(field, 'asc')
+    }
+  }
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return null
+    return sortOrder === 'asc' 
+      ? <ChevronUp className="h-3 w-3 ml-1" />
+      : <ChevronDown className="h-3 w-3 ml-1" />
+  }
+
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      setSelectedIds(new Set())
+    }
+    setSelectionMode(!selectionMode)
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">学生一覧</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {filteredStudents.length}名の学生が表示されています
-          </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-500">
+          {students.length}名の学生
+          {selectedIds.size > 0 && (
+            <span className="ml-2 text-primary-600 font-semibold">
+              （{selectedIds.size}名選択中）
+            </span>
+          )}
         </div>
         
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="氏名・パスポート番号で検索..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full sm:w-80 border-gray-200 focus:border-primary-500 focus:ring-primary-500"
-            />
-          </div>
-        </div>
+        <button
+          onClick={toggleSelectionMode}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors",
+            selectionMode 
+              ? "bg-primary-50 text-primary-700" 
+              : "text-gray-500 hover:bg-gray-100"
+          )}
+        >
+          <CheckSquare className="h-4 w-4" />
+          {selectionMode ? '選択解除' : '選択モード'}
+        </button>
       </div>
       
-      {/* Modern Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                        <th className="min-w-[140px]">氏名</th>
-                        <th className="hidden md:table-cell">国籍</th>
-                        <th className="hidden sm:table-cell">申請締切日</th>
-                        <th className="hidden sm:table-cell">残り日数</th>
-                        <th className="hidden lg:table-cell">提出数／必要数</th>
-                        <th>ステータス</th>
-                        <th className="w-20">詳細</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="min-w-[140px]">
-                        <Link 
-                          href={`/students/${student.id}`}
-                          className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
-                        >
-                          {student.familyName} {student.givenName}
-                        </Link>
-                      </td>
-                      <td className="hidden md:table-cell text-gray-600">
-                        {student.nationality}
-                      </td>
-                      <td className="hidden sm:table-cell text-gray-600">
-                        {formatDate(student.applicationDeadline)}
-                      </td>
-                        <td className="hidden sm:table-cell">
-                          <DeadlineRemainingDays deadlineDate={student.applicationDeadline} />
-                        </td>
-                        <td className="hidden lg:table-cell">
-                          <SubmissionCount documents={student.documents} />
-                        </td>
-                        <td>
-                          <StatusBadge status={student.status} />
-                        </td>
-                      <td>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          asChild
-                          className="border-gray-200 hover:border-primary-300 hover:bg-primary-50"
-                        >
-                          <Link href={`/students/${student.id}`}>
-                            <Eye className="h-4 w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">詳細</span>
-                          </Link>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-        </div>
-        
-        {filteredStudents.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-2">
-              <Search className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">
-              検索結果が見つかりません
-            </h3>
-            <p className="text-gray-500">
-              検索条件を変更してもう一度お試しください
-            </p>
-          </div>
-        )}
+      {isSomeSelected && (
+        <BulkActionBar 
+          selectedStudents={selectedStudents}
+          onClearSelection={() => setSelectedIds(new Set())}
+        />
+      )}
+      
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              {selectionMode && (
+                <th className="w-12 px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </th>
+              )}
+              <th 
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort('name')}
+              >
+                <span className="flex items-center">
+                  氏名
+                  <SortIcon field="name" />
+                </span>
+              </th>
+              <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                国籍
+              </th>
+              <th 
+                className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort('deadline')}
+              >
+                <span className="flex items-center">
+                  申請締切日
+                  <SortIcon field="deadline" />
+                </span>
+              </th>
+              <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                残り日数
+              </th>
+              <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                書類
+              </th>
+              <th 
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                onClick={() => handleSort('status')}
+              >
+                <span className="flex items-center">
+                  ステータス
+                  <SortIcon field="status" />
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {students.map((student) => (
+              <ExpandableRow
+                key={student.id}
+                student={student}
+                isSelected={selectedIds.has(student.id)}
+                onSelectChange={(checked) => handleSelectOne(student.id, checked)}
+                selectionMode={selectionMode}
+              />
+            ))}
+          </tbody>
+        </table>
       </div>
+      
+      {students.length === 0 && (
+        <div className="text-center py-12">
+          <div className="text-gray-300 mb-2">
+            <Search className="h-12 w-12 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-1">
+            該当する学生が見つかりません
+          </h3>
+          <p className="text-gray-500">
+            検索条件やフィルタを変更してください
+          </p>
+        </div>
+      )}
     </div>
   )
 }

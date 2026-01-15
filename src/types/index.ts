@@ -8,6 +8,15 @@ export interface Document {
   approvalStatus?: 'pending' | 'approved' | 'rejected'
 }
 
+// 承認履歴
+export interface ApprovalHistoryItem {
+  id: string
+  documentName: string
+  action: 'approved' | 'rejected' | 'submitted'
+  timestamp: string
+  actor: string
+}
+
 export interface Student {
   id: string
   familyName: string
@@ -25,15 +34,20 @@ export interface Student {
   applicationDate?: string
   applicationDeadline: string
   documents: Document[]
+  approvalHistory?: ApprovalHistoryItem[]
 }
 
+// シンプル化されたステータス設定
 export interface StatusConfig {
   label: string
-  color: 'default' | 'secondary' | 'success' | 'warning' | 'danger' | 'primary'
+  icon: 'clock' | 'alert' | 'check' | 'file' | 'send' | 'edit'
+  isUrgent?: boolean
 }
+
+// 残り日数の設定（期限切れは想定しない）
+export type UrgencyLevel = 'urgent' | 'warning' | 'normal'
 
 export interface RemainingDaysConfig {
   days: number
-  color: 'green' | 'yellow' | 'red'
-  urgent: boolean
+  urgency: UrgencyLevel // 'urgent': 14日以内, 'warning': 30日以内, 'normal': 30日以上
 }

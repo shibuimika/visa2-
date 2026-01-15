@@ -1,4 +1,11 @@
-import { RemainingDaysConfig } from '@/types'
+import { RemainingDaysConfig, UrgencyLevel } from '@/types'
+
+// 残り日数から緊急度を判定
+function getUrgencyLevel(days: number): UrgencyLevel {
+  if (days <= 14) return 'urgent'   // 14日以内: 緊急
+  if (days <= 30) return 'warning'  // 30日以内: 警告
+  return 'normal'                    // 30日以上: 通常
+}
 
 export function calculateRemainingDays(expiryDate: string): RemainingDaysConfig {
   const today = new Date()
@@ -6,24 +13,9 @@ export function calculateRemainingDays(expiryDate: string): RemainingDaysConfig 
   const diffTime = expiry.getTime() - today.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-  if (diffDays < 30) {
-    return {
-      days: diffDays,
-      color: 'red',
-      urgent: true
-    }
-  } else if (diffDays < 90) {
-    return {
-      days: diffDays,
-      color: 'yellow',
-      urgent: true
-    }
-  } else {
-    return {
-      days: diffDays,
-      color: 'green',
-      urgent: false
-    }
+  return {
+    days: diffDays,
+    urgency: getUrgencyLevel(diffDays)
   }
 }
 
@@ -52,24 +44,9 @@ export function calculateDeadlineRemainingDays(deadlineDate: string): RemainingD
   const diffTime = deadline.getTime() - today.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-  if (diffDays < 30) {
-    return {
-      days: diffDays,
-      color: 'red',
-      urgent: true
-    }
-  } else if (diffDays < 90) {
-    return {
-      days: diffDays,
-      color: 'yellow',
-      urgent: true
-    }
-  } else {
-    return {
-      days: diffDays,
-      color: 'green',
-      urgent: false
-    }
+  return {
+    days: diffDays,
+    urgency: getUrgencyLevel(diffDays)
   }
 }
 

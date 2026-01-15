@@ -2,63 +2,92 @@
 
 import { useState, useMemo } from 'react'
 import { useStudents } from '@/contexts/StudentsContext'
-import { Sidebar } from '@/components/Sidebar'
+import { FilterTabs, FilterState, applyFilters, SortField, SortOrder } from '@/components/FilterTabs'
+import { ActionSummary } from '@/components/ActionSummary'
 import { StudentTable } from '@/components/StudentTable'
-import { getEnrollmentYearMonth } from '@/lib/date'
 
 export default function HomePage() {
   const { students } = useStudents()
-  const [selectedFilter, setSelectedFilter] = useState('all')
+  
+  const [filters, setFilters] = useState<FilterState>({
+    status: 'all',
+    sortField: 'deadline',
+    sortOrder: 'asc',
+    searchTerm: '',
+  })
   
   const filteredStudents = useMemo(() => {
-    if (selectedFilter === 'all') {
-      return students.filter(student => student.status !== 'Draft')
-    }
-    
-    return students.filter(student => 
-      student.status !== 'Draft' && 
-      getEnrollmentYearMonth(student.enrollmentDate) === selectedFilter
-    )
-  }, [students, selectedFilter])
-  
+    return applyFilters(students, filters)
+  }, [students, filters])
+
+  const handleFilterUrgent = () => {
+    setFilters(prev => ({
+      ...prev,
+      status: 'all',
+      sortField: 'deadline',
+      sortOrder: 'asc',
+      searchTerm: '',
+    }))
+  }
+
+  const handleFilterCheck = () => {
+    setFilters(prev => ({
+      ...prev,
+      status: 'Check',
+      sortField: 'deadline',
+      sortOrder: 'asc',
+      searchTerm: '',
+    }))
+  }
+
+  const handleSortChange = (field: SortField, order: SortOrder) => {
+    setFilters(prev => ({
+      ...prev,
+      sortField: field,
+      sortOrder: order,
+    }))
+  }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Modern Header */}
-      <header className="bg-white shadow-soft border-b border-gray-100">
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="admin-container py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  ビザ申請サポートシステム
-                </h1>
-                <p className="text-sm text-gray-500">
-                  東京日本語学校 - 在留期間更新管理
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {/* ヘッダーボタンを削除 */}
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-gray-900">
+            ビザ申請サポートシステム
+          </h1>
+          <p className="text-sm text-gray-500">
+            東京日本語学校 - 在留期間更新管理
+          </p>
         </div>
       </header>
       
-      {/* Main Content with Liquid Layout */}
-      <div className="admin-container py-4">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <Sidebar 
-            students={students.filter(s => s.status !== 'Draft')}
-            selectedFilter={selectedFilter}
-            onFilterChange={setSelectedFilter}
+      {/* Main Content */}
+      <main className="admin-container py-6">
+        <div className="space-y-6">
+          {/* Action Summary */}
+          <ActionSummary 
+            students={students}
+            onFilterUrgent={handleFilterUrgent}
+            onFilterCheck={handleFilterCheck}
           />
-          <div className="flex-1 min-w-0">
-            <StudentTable students={filteredStudents} />
-          </div>
+          
+          {/* Filter Tabs */}
+          <FilterTabs 
+            students={students}
+            filters={filters}
+            onFilterChange={setFilters}
+          />
+          
+          {/* Student Table */}
+          <StudentTable 
+            students={filteredStudents}
+            sortField={filters.sortField}
+            sortOrder={filters.sortOrder}
+            onSortChange={handleSortChange}
+          />
         </div>
-      </div>
+      </main>
     </div>
   )
 }
